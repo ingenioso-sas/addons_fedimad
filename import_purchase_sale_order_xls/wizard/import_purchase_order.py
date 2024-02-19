@@ -22,6 +22,7 @@ class ImportPurchaseOrder(models.TransientModel):
 
     file_data = fields.Binary('Archive', required=True,)
     file_name = fields.Char('File Name')
+    id_field = fields.Selection(selection=[('code', 'code'),('name', 'name')], required=True, default="code")
     partner_id = fields.Many2one('res.partner', string='Partner', required=True, domain=[('customer_rank', '>', 0)])
 
 
@@ -69,11 +70,16 @@ class ImportPurchaseOrder(models.TransientModel):
         cont = 0
         for line in archive_lines:
             cont += 1
-            code = str(line.get('code',""))
-            product_id = product_obj.search([('default_code','=',code)])
+            if (self.id_field == "name"):
+                product_name = str(line.get('name',""))
+                product_id = product_obj.search([('name','=',product_name)])
+            else:
+                code = str(line.get('code',""))
+                product_id = product_obj.search([('default_code','=',code)])
+                
             quantity = line.get(u'quantity',0)
             price_unit = self.get_valid_price(line.get('price',""),cont)
-            product_uom = product_template_obj.search([('default_code','=',code)])
+            # product_uom = product_template_obj.search([('default_code','=',code)])
             taxes = product_id.supplier_taxes_id.filtered(lambda r: not product_id.company_id or r.company_id == product_id.company_id)
             tax_ids = taxes.ids
             if purchase_order_id and product_id:
@@ -124,8 +130,13 @@ class ImportPurchaseOrder(models.TransientModel):
         cont=0
         for line in archive_lines:
             cont += 1
-            code = str(line.get('code',"")).strip()
-            product_id = product_obj.search([('default_code','=',code)])
+            if (self.id_field == "name"):
+                product_name = str(line.get('name',"")).strip()
+                product_id = product_obj.search([('name','=',product_name)])
+            else:
+                code = str(line.get('code',"")).strip()
+                product_id = product_obj.search([('default_code','=',code)])
+
             if len(product_id)>1:
                 raise UserError("The product code of line %s is duplicated in the system."%cont)
             if not product_id:
@@ -136,8 +147,8 @@ class ImportPurchaseOrder(models.TransientModel):
         columns = archive_lines[0].keys()
        # print "columns>>",columns
         text = "The file must contain the following columns: code, quantity, and price. \n The following columns are not in the file:"; text2 = text
-        if not 'code' in columns:
-            text +="\n[ code ]"
+        if not 'code' in columns or not 'name' in columns:
+            text +="\n[ code ] o [ name ]"
         if not u'quantity' in columns:
             text +="\n[ quantity ]"
         if not 'price' in columns:
