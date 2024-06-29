@@ -130,8 +130,8 @@ class ImportPurchaseOrder(models.TransientModel):
         cont=0
         for line in archive_lines:
             cont += 1
-            product_name = NULL
-            code = NULL
+            product_name = None
+            code = None
             error_message = "Error desconocido ..."
             if (self.id_field == "name"):
                 product_name = str(line.get('name',"")).strip()
