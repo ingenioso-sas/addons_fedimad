@@ -130,17 +130,25 @@ class ImportPurchaseOrder(models.TransientModel):
         cont=0
         for line in archive_lines:
             cont += 1
+            product_name = NULL
+            code = NULL
+            error_message = "Error desconocido ..."
             if (self.id_field == "name"):
                 product_name = str(line.get('name',"")).strip()
                 product_id = product_obj.search([('name','=',product_name)])
             else:
                 code = str(line.get('code',"")).strip()
                 product_id = product_obj.search([('default_code','=',code)])
+            
+            if(product_name):
+                error_message = "The product name " + product_name
+            if(code):
+                error_message = "The product code " + code
 
             if len(product_id)>1:
-                raise UserError("The product code of line %s is duplicated in the system."%cont)
+                raise UserError( error_message + " of line %s is duplicated in the system."%cont)
             if not product_id:
-                raise UserError("The product code of line %s can't be found in the system."%cont)
+                raise UserError( error_message + " of line %s can't be found in the system."%cont)
 
     @api.model
     def valid_columns_keys(self, archive_lines):
