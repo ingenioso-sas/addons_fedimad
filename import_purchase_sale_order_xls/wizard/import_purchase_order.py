@@ -147,7 +147,7 @@ class ImportPurchaseOrder(models.TransientModel):
         columns = archive_lines[0].keys()
        # print "columns>>",columns
         text = "The file must contain the following columns: code, quantity, and price. \n The following columns are not in the file:"; text2 = text
-        if not 'code' in columns or not 'name' in columns:
+        if not 'code' in columns and not 'name' in columns:
             text +="\n[ code ] o [ name ]"
         if not u'quantity' in columns:
             text +="\n[ quantity ]"
