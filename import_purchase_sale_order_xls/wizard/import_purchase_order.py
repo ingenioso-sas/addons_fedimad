@@ -22,7 +22,7 @@ class ImportPurchaseOrder(models.TransientModel):
 
     file_data = fields.Binary('Archive', required=True,)
     file_name = fields.Char('File Name')
-    id_field = fields.Selection(selection=[('code', 'code'),('name', 'name')], required=True, default="code")
+    id_field = fields.Selection(selection=[('codigo', 'codigo'),('nombre', 'nombre')], required=True, default="codigo")
     partner_id = fields.Many2one('res.partner', string='Partner', required=True, domain=[('customer_rank', '>', 0)])
 
 
@@ -50,13 +50,10 @@ class ImportPurchaseOrder(models.TransientModel):
 
             archive_lines.append(elm)
 
-
-        
         purchase_order_obj = self.env['purchase.order']
         product_obj = self.env['product.product']
         product_template_obj = self.env['product.template']
         purchase_order_line_obj = self.env['purchase.order.line']
-
 
         self.valid_columns_keys(archive_lines)
         self.valid_product_code(archive_lines, product_obj)
@@ -70,15 +67,18 @@ class ImportPurchaseOrder(models.TransientModel):
         cont = 0
         for line in archive_lines:
             cont += 1
-            if (self.id_field == "name"):
-                product_name = str(line.get('name',""))
+            if (self.id_field == "nombre"):
+                product_name = str(line.get('nombre',"")).strip()
                 product_id = product_obj.search([('name','=',product_name)])
             else:
-                code = str(line.get('code',""))
+                posible_numero = str(line.get('codigo',"")).strip()
+                if(posible_numero.isnumeric()):
+                    posible_numero = str(int(posible_numero))
+                code = posible_numero
                 product_id = product_obj.search([('default_code','=',code)])
                 
-            quantity = line.get(u'quantity',0)
-            price_unit = self.get_valid_price(line.get('price',""),cont)
+            quantity = line.get(u'cantidad',0)
+            price_unit = self.get_valid_price(line.get('costo',""),cont)
             # product_uom = product_template_obj.search([('default_code','=',code)])
             taxes = product_id.supplier_taxes_id.filtered(lambda r: not product_id.company_id or r.company_id == product_id.company_id)
             tax_ids = taxes.ids
@@ -104,7 +104,7 @@ class ImportPurchaseOrder(models.TransientModel):
         cont = 0
         for line in archive_lines:
             cont += 1
-            price = line.get('price',"")
+            price = line.get('costo',"")
             if price != "":
                 price = str(price).replace("$","").replace(",",".")
             try:
@@ -133,34 +133,37 @@ class ImportPurchaseOrder(models.TransientModel):
             product_name = None
             code = None
             error_message = "Error desconocido ..."
-            if (self.id_field == "name"):
-                product_name = str(line.get('name',"")).strip()
+            if (self.id_field == "nombre"):
+                product_name = str(line.get('nombre',"")).strip()
                 product_id = product_obj.search([('name','=',product_name)])
             else:
-                code = str(line.get('code',"")).strip()
+                posible_numero = str(line.get('codigo',"")).strip()
+                if(posible_numero.isnumeric()):
+                    posible_numero = str(int(posible_numero))
+                code = posible_numero
                 product_id = product_obj.search([('default_code','=',code)])
             
             if(product_name):
-                error_message = "The product name " + product_name
+                error_message = "Nombre del producto: " + product_name
             if(code):
-                error_message = "The product code " + code
+                error_message = "Codigo del producto: " + code
 
             if len(product_id)>1:
-                raise UserError( error_message + " of line %s is duplicated in the system."%cont)
+                raise UserError( error_message + " de la linea %s is duplicado en el sistema."%cont)
             if not product_id:
-                raise UserError( error_message + " of line %s can't be found in the system."%cont)
+                raise UserError( error_message + " de la linea %s no pudo ser encontrado en el sistema."%cont)
 
     @api.model
     def valid_columns_keys(self, archive_lines):
         columns = archive_lines[0].keys()
        # print "columns>>",columns
         text = "The file must contain the following columns: code, quantity, and price. \n The following columns are not in the file:"; text2 = text
-        if not 'code' in columns and not 'name' in columns:
-            text +="\n[ code ] o [ name ]"
-        if not u'quantity' in columns:
-            text +="\n[ quantity ]"
-        if not 'price' in columns:
-            text +="\n[ price ]"
+        if not 'codigo' in columns and not 'nombre' in columns:
+            text +="\n[ codigo ] o [ nombre ]"
+        if not u'cantidad' in columns:
+            text +="\n[ cantidad ]"
+        if not 'costo' in columns:
+            text +="\n[ costo ]"
         if text !=text2:
             raise UserError(text)
         return True
